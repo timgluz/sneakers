@@ -5,15 +5,19 @@ module Sneakers
   class Runner
     def initialize(worker_classes, opts={})
       @runnerconfig = RunnerConfig.new(worker_classes)
+      @stop_flag = ServerEngine::BlockingFlag.new
     end
 
     def run
       @se = ServerEngine.create(nil, WorkerGroup) { @runnerconfig.reload_config! }
-      @se.run
+      until @stop_flag.set?
+        @se.run
+      end
+      Sneakers.logger.error("Shutting runner down ...")
     end
 
     def stop
-      @se.stop
+      @stop_flag.set!
     end
   end
 
